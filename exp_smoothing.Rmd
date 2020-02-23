@@ -1,0 +1,12 @@
+---
+title: "Exponential Smoothing"
+author: "Simon U., Michael Y., Ben H."
+date: "March X, 2020"
+output: beamer_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Introduction
