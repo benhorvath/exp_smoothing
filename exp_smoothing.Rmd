@@ -122,7 +122,7 @@ ewa <- function(i, T, alpha) alpha * (1 - alpha)^i * y[T - i] + (1 - alpha)^T * 
 
 # Holt's linear trend + damped
 
-
+See http://www.real-statistics.com/time-series-analysis/basic-time-series-forecasting/holt-linear-trend/ for excel formula implementation
 
 
 
