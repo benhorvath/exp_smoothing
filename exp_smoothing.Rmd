@@ -6,7 +6,156 @@ output: beamer_presentation
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set()
+
+# Helper to plot dummy time series models for illustration purposes
+# x: Numeric vector
+# x_hat: Numeric vector of forecast values
+# ...: Commands to pass to plot
+plot_forecast <- function(y, y_hat, ...) {
+    n_y <- length(y)
+    n_yhat <- length(y_hat)
+    plot(1:(n_y+1), c(y, y_hat[1]), type='l', xlim=c(0, n_y+n_yhat), ylab='y, y_hat', xlab='t', ...)
+    lines((n_y+1):(n_y+n_yhat-1), y_hat[2:n_yhat], type='l', col='red')
+}
 ```
 
 # Introduction
+
+## Blah blah
+
+
+
+
+
+# Simple Exponential
+
+
+
+## What is exponential smoothing?
+
+Forecasting future observations using weighted averages of past observations, with the weights decaying exponentially as observations recede further into the past
+
+
+
+## $ES_{1}$: Naive model
+
+* The naive forecasting model can be thought of us exponential smoothing
+* Where 100 percent of weight is given to the last observation:
+
+```{r}
+forecast_naive <- function(y, h) {
+    n <- length(y)
+    y_hat <- rep(y[n], h)
+    return( y_hat )
+}
+```
+
+
+
+## $ES_{1}$: Naive model: Example
+
+```{r, fig.height=5}
+y <- c(1, 4, 5, 2, 3, 6, 8)
+y_hat <- forecast_naive(y, h=7)
+
+plot_forecast(y, y_hat)
+```
+
+
+
+## $ES_{2}$: Average model
+
+* All future values are forecast as the average of the observed data
+* Equivalent to to exponential smoothing where each observation is given equal weight
+
+```{r}
+forecast_avg <- function(y, h) {
+    y_hat <- rep(mean(y), h)
+    return( y_hat )
+}
+```
+
+
+
+## $ES_{2}$: Average model: Example
+
+```{r, fig.height=5}
+y_hat <- forecast_avg(y, h=7)
+plot_forecast(y, y_hat)
+```
+
+
+
+## $ES_{3}$: Weighted average
+
+* More sophisticated model would given recent observations more weight, and decreasing weight for past observations
+* Control the pace of decreasing weight with a parameter $\alpha$ between $0$ and $1$
+* Like the previous two models, this is a flat forecast where all forecasts take the same value, equal to the last level component
+
+```{r}
+y <- c(1, 2, 3, 4)
+
+alpha <- 0.5
+
+y_5_c <- c()
+
+T <- length(y)
+for (i in 1:T-1) {
+    a <- alpha * (1 - alpha)^i * y[T - i] + (1 - alpha)^T * y[1]
+    y_5_c <- append(a, y_5_c)
+}
+
+y_5 <- sum(y_5_c)
+
+# ^ This is 1 too many, compare to ses(y, alpha=0.5, h=5)
+
+```
+
+
+
+## $ES_{3}$: Weighted average: Optimize $\hat{\alpha}$
+
+
+
+
+
+
+
+## $ES_{3}$: Weighted average: Example
+
+
+
+
+
+
+
+# Holt's linear trend + damped
+
+
+
+
+
+
+
+# Holt-Winters method + multiplicative + taxonomy
+
+
+
+
+
+
+
+# ETS modeling (Innovations state space models)
+
+
+
+
+
+
+
+# Conclusion
+
+## Blah blah
+
+
