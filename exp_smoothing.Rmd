@@ -87,29 +87,19 @@ plot_forecast(y, y_hat)
 
 
 
-## $ES_{3}$: Weighted average
+## $ES_{3}$: Exponential weighted average
 
 * More sophisticated model would given recent observations more weight, and decreasing weight for past observations
 * Control the pace of decreasing weight with a parameter $\alpha$ between $0$ and $1$
 * Like the previous two models, this is a flat forecast where all forecasts take the same value, equal to the last level component
 
 ```{r}
-y <- c(1, 2, 3, 4)
+# TODO: Fix this up: Need to incorporate T and y and h parameters, but
+# the math looksfine
+ewa <- function(i, T, alpha) alpha * (1 - alpha)^i * y[T - i] + (1 - alpha)^T * y[1]
 
-alpha <- 0.5
-
-y_5_c <- c()
-
-T <- length(y)
-for (i in 1:T-1) {
-    a <- alpha * (1 - alpha)^i * y[T - i] + (1 - alpha)^T * y[1]
-    y_5_c <- append(a, y_5_c)
-}
-
-y_5 <- sum(y_5_c)
-
-# ^ This is 1 too many, compare to ses(y, alpha=0.5, h=5)
-
+# T <- length(y)
+# ( y_hat <- sum(sapply(1:T-1, ewa, T=T, alpha=0.5 )) )
 ```
 
 
