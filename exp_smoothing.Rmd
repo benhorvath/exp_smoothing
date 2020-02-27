@@ -22,23 +22,32 @@ plot_forecast <- function(y, y_hat, ...) {
 
 # Introduction
 
-## Blah blah
-
-
-
-
-
-# Simple Exponential
-
-
-
-## What is exponential smoothing?
+# What is exponential smoothing?
 
 Forecasting future observations using weighted averages of past observations, with the weights decaying exponentially as observations recede further into the past
 
+* Presumably, more recent data points are more predictive than older points
 
 
-## $ES_{1}$: Naive model
+
+
+# Exponential Smoothing Models
+
+1. Naive---all weight is given to the last observation
+
+2. Average---each past observation is given equal weight
+
+3. Exponential weighted average---Recent observations get higher weight, older observations less weight
+
+4. Holt linear---Same as 3, but accounts for time series with trend
+
+5. Holt-Winters---Same as 4, but also accounts for time series with seasonality
+
+6. State space---
+
+
+
+# $ES_{1}$: Naive model
 
 * The naive forecasting model can be thought of us exponential smoothing
 * Where 100 percent of weight is given to the last observation:
@@ -53,7 +62,7 @@ forecast_naive <- function(y, h) {
 
 
 
-## $ES_{1}$: Naive model: Example
+# $ES_{1}$: Naive model: Example
 
 ```{r, fig.height=5}
 y <- c(1, 4, 5, 2, 3, 6, 8)
@@ -64,7 +73,7 @@ plot_forecast(y, y_hat)
 
 
 
-## $ES_{2}$: Average model
+# $ES_{2}$: Average model
 
 * All future values are forecast as the average of the observed data
 * Equivalent to to exponential smoothing where each observation is given equal weight
@@ -78,7 +87,7 @@ forecast_avg <- function(y, h) {
 
 
 
-## $ES_{2}$: Average model: Example
+# $ES_{2}$: Average model: Example
 
 ```{r, fig.height=5}
 y_hat <- forecast_avg(y, h=7)
@@ -87,37 +96,110 @@ plot_forecast(y, y_hat)
 
 
 
-## $ES_{3}$: Exponential weighted average
+# $ES_{3}$: Simple exponential smoothing
 
 * More sophisticated model would given recent observations more weight, and decreasing weight for past observations
-* Control the pace of decreasing weight with a parameter $\alpha$ between $0$ and $1$
-* Like the previous two models, this is a flat forecast where all forecasts take the same value, equal to the last level component
+* Parameter $\alpha$ controls smoothing; can be optimized
+
+$$\hat{y}_T = \alpha y_T + (1 - \alpha) \hat{y}_{T-1}$$
+
+* $\hat{y}_T \equiv$ predicted value of $y$ at time $t$
+* $\alpha \equiv$ user-chosen smoothing parameter, $0 \leq \alpha \leq$
+    - 1 means no smoothing, 0 means tons of smoothing
+* $\hat{y}_{T-1} \equiv$ predicted value of $y$ at immediately previous period $t - 1$
+
+
+
+# $ES_{3}$: Simple exponential smoothing: Problem
+
+__Problem__: What is $\hat{y}_{T-1}$ when $t = 1$?
+
+$$\hat{y}_T = \alpha y_T + (1 - \alpha) \hat{y}_{T-1}$$
+
+
+
+* Textbook: Component form, the level $\ell_0$
+
+* Set for mean or median of the time series
+
+# 
 
 ```{r}
-# TODO: Fix this up: Need to incorporate T and y and h parameters, but
-# the math looksfine
-ewa <- function(i, T, alpha) alpha * (1 - alpha)^i * y[T - i] + (1 - alpha)^T * y[1]
+forecast_simple <- function(y, h, alpha=0.1) {
+    n <- length(y)
+    l_0 <- mean(y)
+    
+    l <- c()
+    for (i in 1:(n+1)) {
+        if (i == 1) {
+            l_i <- alpha * y[i] + (1 - alpha) * l_0
+        } else {
+            l_i <- alpha * y[i] + (1 - alpha) * l[i-1]
+        }
+        l <- append(l_i, l)
+    }
+    
+    y_hat <- l[n+1]
+    return( rep(y_hat, h) )
+}
+```
 
-# T <- length(y)
-# ( y_hat <- sum(sapply(1:T-1, ewa, T=T, alpha=0.5 )) )
+# $ES_{3}$: Simple exponential smoothing: Example
+
+```{r}
+y_hat <- forecast_simple(y, h=7, alpha=0.25)
+plot_forecast(y, y_hat)
 ```
 
 
 
-## $ES_{3}$: Weighted average: Optimize $\hat{\alpha}$
+# $ES_{3}$: Weighted average: Optimizing $\alpha^*$
+
+BEN: Not sure if we want to keep this??
+
+
+
+# Interlude
+
+* The previous method is effective for time series without trend or seasonality
+
+* But what if your time series has trend?
+
+
+
+# $ES_{4}$: Holt Linear Trend Model
+
+Appropriate for time series that can be described with
+
+$$y_t = \beta_0 + \beta_1 t + \epsilon_t$$
+
+where $\beta_1$ quantifies the trend
 
 
 
 
+# $ES_{4}$: Holt Linear Trend Model: Linear Time Series
+
+* We can explicitly convert our previous time series to a trended one using this formula:
+
+* Previous time series `y = ` (`r y`)
+
+```{r}
+beta_0 <- 0
+beta_1 <- 1.5
+t_ <- 1:7
+( y_1 <- beta_0 + y + beta_1*t_ )
+```
 
 
 
-## $ES_{3}$: Weighted average: Example
+# $ES_{4}$: Holt Linear Trend Model: Linear Time Series
 
-
-
-
-
+```{r, echo=FALSE}
+plot(t_, y, type='o', ylim=c(0, 20))
+lines(t_, y_1, type='o', col='red')
+arrows(x0=5, y0=4, x1 = 5, y1 = 9, length = 0.2, angle = 30, col='red', lty=2)
+```
 
 
 # Holt's linear trend + damped
@@ -146,6 +228,6 @@ See http://www.real-statistics.com/time-series-analysis/basic-time-series-foreca
 
 # Conclusion
 
-## Blah blah
+# Blah blah
 
 
