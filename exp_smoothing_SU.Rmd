@@ -1,0 +1,260 @@
+---
+title: "Exponential Smoothing"
+author: "Simon U., Michael Y., Ben H."
+date: "March X, 2020"
+output: beamer_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set()
+
+# Helper to plot dummy time series models for illustration purposes
+# x: Numeric vector
+# x_hat: Numeric vector of forecast values
+# ...: Commands to pass to plot
+plot_forecast <- function(y, y_hat, ...) {
+    n_y <- length(y)
+    n_yhat <- length(y_hat)
+    plot(1:(n_y+1), c(y, y_hat[1]), type='l', xlim=c(0, n_y+n_yhat), ylab='y, y_hat', xlab='t', ...)
+    lines((n_y+1):(n_y+n_yhat-1), y_hat[2:n_yhat], type='l', col='red')
+}
+```
+
+# Introduction
+
+* **What is exponential smoothing?**\
+Forecasting future observations using weighted averages of past observations, with the weights decaying exponentially as observations recede further into the past
+\
+    - Presumably, more recent data points are more predictive than older points
+    - This framework generates reliable forecasts quickly and for a wide range of time series
+
+- **Exponential Smoothing Models**\
+1. Naive---all weight is given to the last observation
+2. Average---each past observation is given equal weight
+3. Exponential weighted average---Recent observations get higher weight, older observations less weight
+4. Holt linear---Same as 3, but accounts for time series with trend
+5. Holt-Winters---Same as 4, but also accounts for time series with seasonality
+6. State Space---ETS models
+
+# $ES_{1}$: Naive model
+
+* The naive forecasting model can be thought of us exponential smoothing
+* Where 100 percent of weight is given to the last observation:
+$$\hat{y}_{T+h|T} = y_T$$
+
+```{r}
+forecast_naive <- function(y, h) {
+    n <- length(y)
+    y_hat <- rep(y[n], h)
+    return( y_hat )
+}
+```
+
+
+
+# $ES_{1}$: Naive model: Example
+
+```{r, fig.height=5}
+y <- c(1, 4, 5, 2, 3, 6, 8)
+y_hat <- forecast_naive(y, h=7)
+
+plot_forecast(y, y_hat)
+```
+
+
+
+# $ES_{2}$: Average model
+
+* All future values are forecast as the average of the observed data
+* Equivalent to to exponential smoothing where each observation is given equal weight
+\[
+  \hat{y}_{T+h|T} = \frac1T \sum_{t=1}^T y_t,
+\]
+```{r}
+forecast_avg <- function(y, h) {
+    y_hat <- rep(mean(y), h)
+    return( y_hat )
+}
+```
+
+
+
+# $ES_{2}$: Average model: Example
+
+```{r, fig.height=5}
+y_hat <- forecast_avg(y, h=7)
+plot_forecast(y, y_hat)
+```
+
+
+
+# $ES_{3}$: Simple Exponential Smoothing [SES]
+
+- SES stands at the core and servers as the foundation for some of the most successful forecasting methods for modeling time series data.  The produced forecasts are weighted averages of past observations, with the weights decaying exponentially as the observations get older.  SES is actually suitable for forecasting data with no clear trend or seasonal pattern.
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+library(fpp2)
+library(ggplot2)
+library(seasonal)
+```
+
+## Exploring "Exponential" aspect
+
+- The formula for estimating a value at $T+1$ is as follows:
+$$\hat{y}_{T+1|T} = \alpha y_T + \alpha(1-\alpha) y_{T-1} + \alpha(1-\alpha)^2 y_{T-2}+ \cdots$$
+
+## Geometric Distribution
+
+- If the probability of a success in one trial is $p$ and the probability of a failure is $1 - p$, then the probability of finding the first success in the $n^{th}$ tiral is given by
+$$p(1-p)^{n-1}$$
+
+***
+
+### Geometric Distribution graph for various values of $\alpha$
+
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+a <- c(
+  dgeom(x=0:5, prob=0.8),
+  dgeom(x=0:5, prob=0.6),
+  dgeom(x=0:5, prob=0.4),
+  dgeom(x=0:5, prob=0.2)
+)
+lbl <- c(
+  rep('alpha == 0.8', 6),
+  rep('alpha == 0.6', 6),
+  rep('alpha == 0.4', 6),
+  rep('alpha == 0.2', 6)
+)
+t <- rep(c('T', 'T-1', 'T-2', 'T-3', 'T-4', 'T-5'), 4)
+dm <- data.frame(a, t, lbl)
+
+ggplot(dm, aes(x = dm$t, y = dm$a)) + 
+  geom_col() + 
+  geom_text(aes(label = round(dm$a,2)),
+            position = position_dodge(0.9),
+            size = 3.5,
+            vjust = -0.25) +
+  facet_grid(.~lbl, labeller = label_parsed) +
+  labs(x = expression("Y"[T]^{}), y = '') + 
+  theme_minimal()
+```
+
+***
+
+## Exploring "Smoothing" aspect
+
+- With $\alpha \approx 1$ [$\alpha=0.8$], the model is very much ***reactive*** to the most recent observations
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+fc8 <- ses(hsales, alpha = 0.8)
+autoplot(hsales) +
+  autolayer(fitted(fc8), series = "SES", PI=FALSE) +
+  labs(title = 'Monthly sales of new one-family houses', x = '') + 
+  theme_minimal()
+```
+
+***
+
+- With $\alpha \approx 0$ [$\alpha=0.02$], the model is much less reactive (***smoother***) to react to change
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+fc2 <- ses(hsales, alpha = 0.02)
+autoplot(hsales) +
+  autolayer(fitted(fc2), series = "SES", PI=FALSE) +
+  labs(title = 'Monthly sales of new one-family houses', x = '') + 
+  theme_minimal()
+```
+
+***
+
+## SES - Mathematical Formulations
+
+
+- **Weighted average form**\
+$$\hat{y}_{T+1|T} = \alpha y_T + (1-\alpha) \hat{y}_{T|T-1}$$
+This is a *"recursive"* definition for the below
+$$\hat{y}_{T+1|T} = \alpha y_T + \alpha(1-\alpha) y_{T-1} + \alpha(1-\alpha)^2 y_{T-2}+ \cdots$$
+which can also be written as:
+$$\hat{y}_{T+1|T} = \sum_{j=0}^{T-1} \alpha(1-\alpha)^j y_{T-j} + (1-\alpha)^T \ell_{0}$$
+- **Component Form**\
+$$
+\begin{aligned}
+  \text{Forecast equation} & & \hat{y}_{t+h|t} &= \ell_{t}\\
+  \text{Smoothing equation} & & \ell_{t}        &= \alpha y_{t} + (1 - \alpha)\ell_{t-1}
+\end{aligned}
+$$
+where $\ell_{t}$ is the ***level*** (*smoothed* value) of the series at time $t$
+
+***
+
+# Interlude
+
+* The previous method is effective for time series without trend or seasonality
+
+* But what if your time series has trend?
+
+
+
+# $ES_{4}$: Holt Linear Trend Model
+
+Appropriate for time series that can be described with
+
+$$y_t = \beta_0 + \beta_1 t + \epsilon_t$$
+
+where $\beta_1$ quantifies the trend
+
+
+
+
+# $ES_{4}$: Holt Linear Trend Model: Linear Time Series
+
+* We can explicitly convert our previous time series to a trended one using this formula:
+
+* Previous time series `y = ` (`r y`)
+
+```{r}
+beta_0 <- 0
+beta_1 <- 1.5
+t_ <- 1:7
+( y_1 <- beta_0 + y + beta_1*t_ )
+```
+
+
+
+# $ES_{4}$: Holt Linear Trend Model: Linear Time Series
+
+```{r, echo=FALSE}
+plot(t_, y, type='o', ylim=c(0, 20))
+lines(t_, y_1, type='o', col='red')
+arrows(x0=5, y0=4, x1 = 5, y1 = 9, length = 0.2, angle = 30, col='red', lty=2)
+```
+
+
+# Holt's linear trend + damped
+
+See http://www.real-statistics.com/time-series-analysis/basic-time-series-forecasting/holt-linear-trend/ for excel formula implementation
+
+
+
+
+
+# Holt-Winters method + multiplicative + taxonomy
+
+
+
+
+
+
+
+# ETS modeling (Innovations state space models)
+
+
+
+
+
+
+
+# Conclusion
+
+# Blah blah
+
+
