@@ -413,5 +413,14 @@ autoplot(forecast(ets(qcement.train, model = "MMM")))
 * Geometric Distribution
     - [OpenIntro Statistics, Fourth Edition, David Diez, Mine Cetinkaya-Rundel, Christopher D Barr](https://www.openintro.org/book/os/)
 
+# Resources & Further Readings
+
+* Exponential Smoothing
+    - https://otexts.com/fpp2/expsmooth.html
+    - http://uc-r.github.io/ts_exp_smoothing
+
+* Geometric Distribution
+    - [OpenIntro Statistics, Fourth Edition, David Diez, Mine Cetinkaya-Rundel, Christopher D Barr](https://www.openintro.org/book/os/)
+
 
 
